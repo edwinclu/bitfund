@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "bitfund"
+version = "0.1.0"
+description = ""
+authors = ["edwin <edwinchanglu@gmail.com>"]
+readme = "README.md"
+packages = [
+    {include = "src"}
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.32.3"
+pandas = "^2.2.3"
+ibind = "^0.1.13"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
