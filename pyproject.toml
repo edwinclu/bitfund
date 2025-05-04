@@ -13,6 +13,8 @@ python = "^3.11"
 requests = "^2.32.3"
 pandas = "^2.2.3"
 ibind = "^0.1.13"
+ib-insync = "^0.9.86"
+matplotlib = "^3.10.1"
 
 
 [build-system]
