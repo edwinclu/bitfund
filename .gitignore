@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-log.txt
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.manifest
+
+# jupyter
+.ipynb_checkpoints
+src/jupyter/.ipynb_checkpoints
+
+
+# Environments
+.venv
+venv/
+ENV/
+env.bak/
+tmp/
+
+# PyInstaller
+#  Usually these files are written by a python script; better to not track them
+#  It is best to use a clean environment each time to avoid confusion
+#  If not properly cleaned, these files will cause great confusion
+#  e.g. if one accidentally installs an older version, then the older version will be used
+*.manifest
+*.spec
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.~
+tmp*
+*DS_Store
+
+# OS or Sys files
+.DS_Store
+
