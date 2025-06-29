@@ -15,6 +15,8 @@ pandas = "^2.2.3"
 ibind = "^0.1.13"
 ib-insync = "^0.9.86"
 matplotlib = "^3.10.1"
+jupyterlab = "^4.4.4"
+scipy = "^1.16.0"
 
 
 [build-system]
