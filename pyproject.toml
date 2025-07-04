@@ -5,7 +5,7 @@ description = ""
 authors = ["edwin <edwinchanglu@gmail.com>"]
 readme = "README.md"
 packages = [
-    {include = "src"}
+  { include = "bitfund", from = "src" },
 ]
 
 [tool.poetry.dependencies]
@@ -18,7 +18,13 @@ matplotlib = "^3.10.1"
 jupyterlab = "^4.4.4"
 scipy = "^1.16.0"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ["py310"]
