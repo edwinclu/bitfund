@@ -94,6 +94,9 @@ class ConsistentRunningSegmenter:
                     self.path[i] = j
 
     def process_new_point(self, new_point):
+        # print(f"Segments before processing new point: {self.n}")
+        # self.print_segments()
+
         """
         Processes a new data point arriving in the stream, extending the segmentation.
 
@@ -134,6 +137,22 @@ class ConsistentRunningSegmenter:
         self.path[current_dp_index] = best_path_for_current_dp_index
 
         # print(f"Processed point at x={new_point[0]}. Current segments: {len(self.get_segments())}")
+
+    def print_segments(self):
+        current_end = self.n  # Start from the end of the full data array
+        segments = []
+        while current_end > 0:
+            current_start = self.path[current_end]
+            segments.append((current_start, current_end))
+            current_end = current_start
+        segments = reversed(segments)
+        for i, j in segments:
+            print(f"[{i},{j})")
+
+    def print_path(self):
+        for i in range(self.n):
+            print(f"<{i}, {self.path[i]}>")
+
 
     def get_segments(self):
         """
@@ -181,7 +200,8 @@ if __name__ == "__main__":
     # Store segments at different time steps to visualize consistency
     snapshots = {}
     snapshots[initial_batch_size - 1] = segmenter.get_segments()
-
+    segmenter.print_path()
+    segmenter.print_segments()
     # Simulate streaming by processing points one by one
     for i in range(initial_batch_size, len(full_data_array)):
         new_point = full_data_array[i:i + 1]  # Get as a (1,2) array for vstack
@@ -190,6 +210,8 @@ if __name__ == "__main__":
         if i % 20 == 0 or i == len(full_data_array) - 1:  # Snapshot every 20 points or at the end
             snapshots[i] = segmenter.get_segments()
 
+    segmenter.print_path()
+    segmenter.print_segments()
     # --- Plotting the snapshots ---
     fig, axes = plt.subplots(len(snapshots), 1, figsize=(12, 5 * len(snapshots)), sharex=True, sharey=True)
     if len(snapshots) == 1:  # Handle case of only one subplot
