@@ -110,8 +110,8 @@ class ConsistentRunningSegmenter:
 
 
     def process_new_point(self, new_point):
-        print("Segments before processing new point: ", end="")
-        self.print_segments()
+        #print("Segments before processing new point: ", end="")
+        #self.print_segments()
         """
         Processes a new data point arriving in the stream, extending the segmentation.
 
@@ -150,9 +150,9 @@ class ConsistentRunningSegmenter:
             self.dp[-1] = constant_cost
             self.path[-1] = self.path[-2]
 
-        print(f"Processed point at x={new_point[0]}. Current segments: {len(self.get_segments())}")
-        print("Segments after processing new point: ", end="")
-        self.print_segments()
+        #print(f"Processed point at x={new_point[0]}. Current segments: {len(self.get_segments())}")
+        #print("Segments after processing new point: ", end="")
+        #self.print_segments()
 
     def get_segments(self):
         """
