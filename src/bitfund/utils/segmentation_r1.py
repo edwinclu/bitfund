@@ -4,6 +4,10 @@ new data points arrive, you'll re-run segmentation.
 Constraints:
     the existing segmentation should not change?
     the mean of last segmentation should not change?
+
+Note: This is a stable version of segmentation_running.
+When a new point arrives, we make sure the start point is not changed.
+However, the running part is purely based on mono_n and drastic_factor.
 """
 
 
@@ -20,6 +24,9 @@ class ConsistentRunningSegmenter:
         Args:
             initial_data_array (np.array): Initial batch of data points (N, 2).
             penalty_lambda (float): The penalty for each new segment created.
+            condition_penalty(float): Give at least this penalty if there are more than mono_n points on one side
+            mono_n: the threshold to amplify the penalty, when more than mono_n consecutive points are on one side
+            drastic_factor: if there is a drastic change of more than this, double the penalty.
         """
         if len(initial_data_array) == 0:
             raise ValueError("Initial data cannot be empty.")
