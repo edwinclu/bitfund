@@ -3,7 +3,8 @@ A running version of dynamic segmentation algorithm, where initially you have a 
 new data points arrive, you'll re-run segmentation.
 
 Modify the constat const functon to take into account the mono_n and drastic_factor.
-Note, this may change the last segment's start point.
+When a new data point is processed, it won't change the start point of the last segment.
+Instead, it seeks to either add to the last segment, or break the last segment into multiple segments.
 """
 
 
@@ -55,37 +56,32 @@ class ConsistentRunningSegmenter:
         cost = np.sum((y - mean_y) ** 2)
         return cost
 
-    def _calculate_segment_cost_running(self, segment_data_array):
+    def _calculate_segment_cost_with_special_condition(self, segment_data_array):
         """
         Calculates the cost (sum of squared differences from the mean) for a given segment.
         Assumes segment_data_array is a numpy array of shape (n_points, 2).
         Bump the cost to multiples or condition_penalty if
             mono_n consecutive points > (<) mean,
             or any point changes drastically by a factor of x
-        Returns (x,y)
-            x is the cost of adding to the same segment.
-            y is the suggested length of the new segment if to break.
         """
         y = segment_data_array[:, 1]
         n = len(segment_data_array)
+        segment_cost = self._calculate_segment_cost_constant(segment_data_array)
         if n >= 2:
             # check for drastic change.
             prior_mean = np.mean(y[0:-1])
             if y[-1] > prior_mean * self.drastic_factor or y[-1] * self.drastic_factor < prior_mean:
-                # if there is a drastic change, double the cost
-                # last 1 point is the outlier
-                print(f"Drastic change found: mean={prior_mean}, {y[-1]}")
-                return 2 * max(self._calculate_segment_cost_constant(segment_data_array[0:-1]), self.condition_penalty)
+                # if there is a drastic change, double the cost: last 1 point is the outlier
+                # print(f"Drastic change found: mean={prior_mean}, {y[-1]}")
+                return 2 * max(segment_cost, self.condition_penalty)
         if n >= self.mono_n + 1:
             # check if there are mono_n points greater or less than mean
-            prior_mean = np.mean(y[0:-1])
-            greater_than = sum(1 for e in y[n - self.mono_n:n] if e > prior_mean)
-            less_than = sum(1 for e in y[n - self.mono_n:n] if e < prior_mean)
+            greater_than = sum(1 for i in range(self.mono_n) if y[n-i-1] > np.mean(y[0:n-i-1]))
+            less_than = sum(1 for i in range(self.mono_n) if y[n-i-1] > np.mean(y[0:n-i-1]))
             if greater_than == self.mono_n or less_than == self.mono_n:
-                print(f"Consecutive mono_n found: mean={prior_mean}, {y[n-self.mono_n:]}")
-                return self.mono_n * max(self._calculate_segment_cost_constant(segment_data_array[0:-1]),
-                                    self.condition_penalty)
-        return self._calculate_segment_cost_constant(segment_data_array)
+                # print(f"Consecutive {self.mono_n} found: {y}")
+                return 2 * max(segment_cost, self.condition_penalty)
+        return segment_cost
 
     def _run_dp_for_range(self, start_idx_dp, end_idx_dp):
         """Helper to run DP for a specified range of indices."""
@@ -106,7 +102,11 @@ class ConsistentRunningSegmenter:
         while current_end > 0:
             current_start = self.path[current_end]
             segments.append((current_start, current_end))
-            current_end = current_start
+            # in case this segment did not link to the prior one
+            if current_start != current_end:
+                current_end = current_start
+            else:
+                current_end = current_end -1
         segments = reversed(segments)
         for i, j in segments:
             print(f"[{i},{j})", end=" ")
@@ -133,29 +133,36 @@ class ConsistentRunningSegmenter:
         self.dp = np.pad(self.dp, (0, 1), 'constant', constant_values=np.inf)
         self.path = np.pad(self.path, (0, 1), 'constant', constant_values=0)
 
-        # Only need to compute the DP state for the very last point
-        # The segment `i` means segment ending at index `i-1` of data.
-        # So for the new point (at index self.n-1), we compute dp[self.n]
-        current_dp_index = self.n  # This corresponds to data point at index n-1
 
-        min_cost_for_current_dp_index = np.inf
-        best_path_for_current_dp_index = -1
+        # check cost of the last segment, as we don't want to change other segments on the fly
+        old_start_idx = self.path[-2]
+        last_segment_data = self.data[old_start_idx:]
+        min_cost = self._calculate_segment_cost_with_special_condition(last_segment_data)
+        break_at_index = -1
+        for break_point in range(old_start_idx+1, self.n):
+            first_segment_data = self.data[old_start_idx:break_point]
+            second_segment_data = self.data[break_point:]
+            first_segment_cost = self._calculate_segment_cost_with_special_condition(first_segment_data)
+            second_segment_cost = self._calculate_segment_cost_with_special_condition(second_segment_data)
+            total_break_cost = first_segment_cost + second_segment_cost + self.penalty_lambda
+            if total_break_cost < min_cost:
+                # print(f"break at {break_point}")
+                min_cost = total_break_cost
+                break_at_index = break_point
+        if break_at_index == -1:
+            # keep the last point within the same segment
+            self.path[-1] = self.path[-2]
+            self.dp[-1] = self.dp[-2] + min_cost
+        else:
+            # update the segment start point
+            # the self.path[old_start_idx] should point to the start of the prior segment
+            for i in range(old_start_idx+1, break_at_index+1):
+                self.path[i] = old_start_idx
+            for i in range(break_at_index+1, len(self.path)):
+                self.path[i] = break_at_index
+            # not needed for running algorithm?
+            self.dp[-1] = self.dp[-2] + min_cost
 
-        for j in range(current_dp_index):  # j from 0 to current_dp_index - 1
-            # Segment is from index j to current_dp_index - 1
-            current_segment_data = self.data[j:current_dp_index]
-            running_cost = self._calculate_segment_cost_running(current_segment_data)
-            total_cost_candidate = self.dp[j] + running_cost + self.penalty_lambda
-
-            if total_cost_candidate < min_cost_for_current_dp_index:
-                min_cost_for_current_dp_index = total_cost_candidate
-                best_path_for_current_dp_index = j
-
-        self.dp[current_dp_index] = min_cost_for_current_dp_index
-        self.path[current_dp_index] = best_path_for_current_dp_index
-        #print(f"Processed point at x={new_point[0]}. Current segments: {len(self.get_segments())}")
-        #print("Segments after processing new point: ", end="")
-        #self.print_segments()
 
     def get_segments(self):
         """
@@ -167,11 +174,14 @@ class ConsistentRunningSegmenter:
             current_start = self.path[current_end]
             segment = self.data[current_start:current_end]
             segments.append(segment)
-            current_end = current_start
+            # in case this segment did not link to the prior one
+            if current_start != current_end:
+                current_end = current_start
+            else:
+                current_end = current_end -1
         return list(reversed(segments))
 
 
-# --- Sample Usage ---
 if __name__ == "__main__":
     np.random.seed(42)
     time = np.arange(150)
@@ -183,6 +193,7 @@ if __name__ == "__main__":
     price[60:90] = 6 + 0.2 * (time[60:90] - 60) + np.random.normal(0, 0.5, 30)
     price[90:120] = 10 + np.random.normal(0, 0.8, 30)  # Flat segment with more noise
     price[120:150] = 8 - 0.1 * (time[120:150] - 120) + np.random.normal(0, 0.5, 30)
+
 
     full_data_array = np.column_stack((time, price))
 
@@ -197,8 +208,9 @@ if __name__ == "__main__":
 
     # Initialize the segmenter with the initial batch
     segmenter = ConsistentRunningSegmenter(initial_data_array=initial_data,
+                                           mono_n=5,
                                            penalty_lambda=penalty_value,
-                                           condition_penalty=2*penalty_value)  # or 'linear'
+                                           condition_penalty=2*penalty_value)
 
     # Store segments at different time steps to visualize consistency
     snapshots = {}
@@ -208,8 +220,13 @@ if __name__ == "__main__":
     for i in range(initial_batch_size, len(full_data_array)):
         new_point = full_data_array[i:i + 1]  # Get as a (1,2) array for vstack
         segmenter.process_new_point(new_point)
+        print(f"................{i+1} points so far")
+        # print(segmenter.path)
+        segmenter.print_segments()
+
+
         # Take snapshots at specific points in time to observe changes
-        if i % 3 == 0 or i == len(full_data_array) - 1:  # Snapshot every 20 points or at the end
+        if i % 10 == 0 or i == len(full_data_array) - 1:  # Snapshot every 20 points or at the end
             snapshots[i] = segmenter.get_segments()
 
     # --- Plotting the snapshots ---
@@ -245,7 +262,3 @@ if __name__ == "__main__":
     plt.ylabel('Price (y)')
     plt.tight_layout()
     plt.show()
-
-    # You can inspect specific segments to confirm consistency
-    # For example, compare segments[0] from t=99 and t=119
-    # They should be identical up to the last segment of the earlier snapshot.
