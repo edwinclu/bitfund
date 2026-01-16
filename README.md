@@ -50,12 +50,8 @@ of the stock price and the crypto price. A more complex model is planned for fut
     ![Price_Ratio_Using_Running_Algorithm](./src/jupyter/Segment_MSTR_BTC_ratio_running.png)
 
 ## Next Step
-1. **Live Data Integration**: Fetch Bitcoin price data in real-time.
-2. **Trading Signal Generation**
-   1. Continuously run the segmentation algorithm to define the "fair value" mean line
-   2. Generate buy/sell recommendations when the current price ratio deviates significantly (premium/discount) from this line.
-3. **Backtesting & Simulation**
-   1. Define a clear buy/sell strategy based on the signals.
+1. **Backtesting & Simulation**
+   1. Verify that backtest module works as expected.
    2. Run simulations to evaluate the model's performance and tune parameters (e.g., segmentation cost, strategy rules) to find the optimal configuration.
 
 
